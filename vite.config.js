@@ -14,12 +14,12 @@ export default defineConfig(({ mode }) => {
       port: Number(env.VITE_APP_PORT),
       open: true,
       proxy: {
-        [env.VITE_APP_BASE_API]: {
-          target: env.VITE_APP_BASE_API,
+        [env.VITE_APP_BASE_URL]: {
+          target: env.VITE_APP_BASE_URL,
           changeOrigin: true,
           // eg: localhost:3000/dev-api/user/me -> http://xxx.com/user/me
           rewrite: (path) => {
-            path.replace(new RegExp("^" + env.VITE_APP_BASE_API), "")
+            path.replace(new RegExp("^" + env.VITE_APP_BASE_URL), "")
           },
         },
       },
