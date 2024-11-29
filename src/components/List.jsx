@@ -9,10 +9,12 @@ import {
   Flex,
   Tag,
   Modal,
-  Avatar,
   List,
   Select,
+  Card,
+  Image,
 } from "antd"
+const { Meta } = Card
 import { ExclamationCircleFilled } from "@ant-design/icons"
 
 import { getList, deleteItem, getAttributes } from "../api"
@@ -35,7 +37,7 @@ export function ModuleList() {
   const [state, updateState] = useImmer({
     filterValue: [],
     currentPage: 1,
-    pageSize: 10,
+    pageSize: 20,
   })
 
   // getAttr
@@ -180,37 +182,69 @@ export function ModuleList() {
             create
           </Button>
         </Flex>
-
         <List
-          itemLayout="horizontal"
           dataSource={filteredList}
+          grid={{
+            gutter: 16,
+            xs: 2,
+            sm: 3,
+            md: 3,
+            lg: 4,
+            xl: 4,
+            xxl: 6,
+          }}
           renderItem={(item, index) => (
-            <List.Item
-              actions={[
-                <a key="edit" onClick={() => showDetail(item)}>
-                  查看
-                </a>,
-                <a key="edit" onClick={() => editItem(item)}>
-                  edit
-                </a>,
-                <Button
-                  key="delete"
-                  onClick={() => showDeleteConfirm(item)}
-                  type="dashed"
-                >
-                  Delete
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
-                  />
+            <List.Item>
+              <Card
+                hoverable
+                key={item.id}
+                title={item.name}
+                extra={
+                  <a href="#" onClick={() => showDetail(item)}>
+                    Info
+                  </a>
                 }
-                title={<a onClick={() => showDetail(item)}>{item.name}</a>}
-                description={
-                  <Flex gap="4px 0" wrap>
+                // cover={
+                //   <Flex justify="center" align="center">
+                //     <Image
+                //       src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
+                //     />
+                //   </Flex>
+                // }
+                actions={[
+                  <Button
+                    key="edit"
+                    color="primary"
+                    variant="outlined"
+                    onClick={() => editItem(item)}
+                  >
+                    edit
+                  </Button>,
+                  <Button
+                    key="delete"
+                    color="danger"
+                    variant="dashed"
+                    onClick={() => showDeleteConfirm(item)}
+                  >
+                    delete
+                  </Button>,
+                ]}
+              >
+                <Flex
+                  gap="small"
+                  vertical
+                  style={{ height: "100px", overflowY: "auto" }}
+                >
+                  <Flex gap="small" align="center">
+                    CreateAt:
+                    <Meta title="" description={item.created_at} />
+                  </Flex>
+
+                  <Flex gap="small" align="center">
+                    UpdateAt:
+                    <Meta title="" description={item.updated_at} />
+                  </Flex>
+                  <Flex gap="small" align="center" wrap>
                     标签:
                     {item.tags &&
                       item.tags.map((item) => (
@@ -219,16 +253,17 @@ export function ModuleList() {
                         </Tag>
                       ))}
                   </Flex>
-                }
-              />
-              <p>{item.updated_at}</p>
+                </Flex>
+              </Card>
             </List.Item>
           )}
         />
         <Pagination
+          align="end"
           current={state.currentPage}
           pageSize={state.pageSize}
           total={data?.total || 0}
+          showTotal={(total) => `Total ${total} items`}
           onChange={onPaginationChange}
         />
       </Flex>
