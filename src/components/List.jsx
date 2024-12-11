@@ -13,25 +13,27 @@ import {
   Select,
   Card,
   Image,
+  Space,
 } from "antd"
 const { Meta } = Card
 import { ExclamationCircleFilled } from "@ant-design/icons"
 
 import { getList, deleteItem, getAttributes } from "../api"
 
-import { ModuleModal } from "./ModuleModal"
+import { CreateModal } from "./CreateModal"
+// import { EditModal } from "./EditModal"
 import { DetailModal } from "./DetailModal"
 
 const { confirm } = Modal
 
 // get list
-export function ModuleList() {
+export function ModelList() {
   // Create a client
   const queryClient = useQueryClient()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [isCreate, setIsCreate] = useState(true)
   const [itemData, setItemData] = useState({})
 
   const [state, updateState] = useImmer({
@@ -46,20 +48,18 @@ export function ModuleList() {
     queryFn: () => getAttributes(),
   })
 
-  const [options, updateOptions] = useImmer([])
-
+  const [options, updateOptions] = useImmer(attrList)
   useEffect(() => {
     attrList &&
-      updateOptions(
-        attrList.map((item) => {
-          const { key: label, value } = item
+      updateOptions((draft) => {
+        return attrList.map((item) => {
           return {
-            label,
-            value,
+            label: `${item.key}:${item.value}`,
+            value: `${item.key}:${item.value}`,
           }
         })
-      )
-  }, [attrList])
+      })
+  }, [attrList, updateOptions])
 
   // getList
   const { isPending, error, data, isFetching } = useQuery({
@@ -69,8 +69,9 @@ export function ModuleList() {
 
   // handle select change
   const handleFilterChange = (value) => {
+    console.log("value---", value)
     updateState((draft) => {
-      draft.filterValue = value
+      draft.filterValue = value.map((item) => item.split(":")[1])
     })
   }
 
@@ -81,7 +82,7 @@ export function ModuleList() {
       : item.tags.some((tag) =>
           state.filterValue.some((searchItem) =>
             // 模糊匹配
-            tag.key.toLowerCase().includes(searchItem.toLowerCase())
+            tag.value.toLowerCase().includes(searchItem.toLowerCase())
           )
         )
   )
@@ -103,19 +104,22 @@ export function ModuleList() {
 
   const openModal = async () => {
     setItemData({})
-    setIsCreate(true)
     setIsModalOpen(true)
   }
 
   const editItem = (item) => {
     setItemData(item)
-    setIsCreate(false)
     setIsModalOpen(true)
+
+    // setIsEditModalOpen(true)
   }
 
   const getChildModal = (modalOpen) => {
     setIsModalOpen(modalOpen)
   }
+  // const getEditChildModal = (val) => {
+  //   setIsEditModalOpen(val)
+  // }
   const getDetailOpen = (val) => {
     setIsDetailOpen(val)
   }
@@ -152,19 +156,29 @@ export function ModuleList() {
           detailData={itemData}
         />
       )}
-      {/* create/edit modal */}
+      {/* create modal */}
       {isModalOpen && (
-        <ModuleModal
-          isCreate={isCreate}
+        <CreateModal
           isModalOpen={isModalOpen}
           detailData={itemData}
           getOpen={getChildModal}
-          attrList={options}
           onSuccess={() => {
             queryClient.invalidateQueries(["list"])
           }}
         />
       )}
+      {/* edit modal */}
+      {/* {isEditModalOpen && (
+        <EditModal
+          isModalOpen={isEditModalOpen}
+          detailData={itemData}
+          getOpen={getEditChildModal}
+          attrList={options}
+          onSuccess={() => {
+            queryClient.invalidateQueries(["list"])
+          }}
+        />
+      )} */}
       <Flex gap="middle" vertical>
         <Flex align="center" gap="middle" justify="space-between">
           {/* <Filter /> */}
@@ -173,9 +187,14 @@ export function ModuleList() {
             // value={state.filterValue}
             defaultValue={state.filterValue}
             style={{ width: "100%" }}
-            placeholder="multiple Mode"
+            placeholder="Input or select tags to filter results"
             onChange={handleFilterChange}
             options={options}
+            // optionRender={(option) => (
+            //   <Space>
+            //     <span>{option.data.value}</span>({option.data.label})
+            //   </Space>
+            // )}
             allowClear={true}
           />
           <Button type="primary" onClick={openModal}>
@@ -204,13 +223,6 @@ export function ModuleList() {
                     Info
                   </a>
                 }
-                // cover={
-                //   <Flex justify="center" align="center">
-                //     <Image
-                //       src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
-                //     />
-                //   </Flex>
-                // }
                 actions={[
                   <Button
                     key="edit"
@@ -245,10 +257,10 @@ export function ModuleList() {
                     <Meta title="" description={item.updated_at} />
                   </Flex>
                   <Flex gap="small" align="center" wrap>
-                    标签:
+                    Tags:
                     {item.tags &&
                       item.tags.map((item) => (
-                        <Tag bordered={false} key={item.value}>
+                        <Tag bordered={false} key={`${item.key}-${item.value}`}>
                           {item.key}:{item.value}
                         </Tag>
                       ))}

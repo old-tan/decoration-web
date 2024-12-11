@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber"
 import { Stage, Gltf, OrbitControls } from "@react-three/drei"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Segmented,
   Modal,
@@ -10,36 +11,38 @@ import {
   Card,
   Image,
   Descriptions,
+  Table,
 } from "antd"
+import { useImmer } from "use-immer"
 const { Meta } = Card
 import { useEffect, useState } from "react"
+import { getModelAttributes, getModelFiles } from "../api"
+import { buildTreeWithLimitedDepth } from "../utils"
 export const DetailModal = (props) => {
   const { getOpen, isDetailOpen, detailData } = props
-  const { name: model_name, files, tags, created_at, updated_at } = detailData
-  // const [options, setOptions] = useState([
-  //   {
-  //     label: "lods0",
-  //     value: "lods0",
-  //     url: "",
-  //   },
-  //   {
-  //     label: "lods1",
-  //     value: "lods1",
-  //     url: "",
-  //   },
-  //   {
-  //     label: "lods2",
-  //     value: "lods2",
-  //     url: "",
-  //   },
-  //   {
-  //     label: "thumb",
-  //     value: "thumb",
-  //     url: "",
-  //   },
-  // ])
-  const [curUrl, setCurUrl] = useState("")
-  const [curVal, setCurVal] = useState("")
+  const { id, name: model_name, created_at, updated_at } = detailData
+  const [fileTree, updateFileTree] = useImmer([])
+
+  // getAttr
+  const { data: tags } = useQuery({
+    queryKey: ["attr"],
+    queryFn: () => getModelAttributes({ model_id: id }),
+  })
+
+  // get model-files
+  const { data: modelData } = useQuery({
+    queryKey: ["model-files"],
+    queryFn: () => getModelFiles({ model_id: id }),
+  })
+
+  useEffect(() => {
+    if (modelData) {
+      // const { modelzip, modelfiles } = modelData
+      const treeData = buildTreeWithLimitedDepth(modelData)
+      updateFileTree(() => treeData)
+    }
+  }, [id, modelData, updateFileTree])
+
   const descs = [
     {
       key: "ModelName",
@@ -59,51 +62,36 @@ export const DetailModal = (props) => {
     {
       key: "Tags",
       label: "Tags",
-      children: tags.map((item) => {
-        const { key, value } = item
-        return (
-          <Tag bordered={false} key={key}>
-            {key}:{value}
-          </Tag>
-        )
-      }),
+      children:
+        tags.length > 0 &&
+        tags.map((item) => {
+          const { key, value } = item
+          return (
+            <Tag bordered={false} key={`${key}-${value}`}>
+              {key}:{value}
+            </Tag>
+          )
+        }),
     },
   ]
-
-  useEffect(() => {
-    files.length &&
-      setCurUrl(`${import.meta.env.VITE_APP_BASE_URL}${files[0].url}`)
-  }, [files])
-  // useEffect(() => {
-  //   if (!files || files.length === 0) return
-  //   // Map over options and update URLs based on files slot match
-  //   const updatedOptions = options.map((option) => {
-  //     const matchedFile = files.find((file) => file.slot === option.label)
-  //     return {
-  //       ...option,
-  //       url: matchedFile
-  //         ? `http://localhost:3030${matchedFile.url}`
-  //         : option.url,
-  //     }
-  //   })
-
-  //   // Set curUrl to the first option's URL
-  //   if (updatedOptions.length > 0) {
-  //     const hasUrlIndex = updatedOptions.findIndex((item) => item)
-  //     setCurUrl(updatedOptions[hasUrlIndex].url)
-  //     setCurVal(updatedOptions[hasUrlIndex].value)
-  //     setOptions(updatedOptions)
-  //   }
-  // }, [files])
-
-  // const handleChange = async (val) => {
-  //   setCurUrl("")
-  //   setCurVal("")
-  //   const matchedFile = await options.find((item) => item.value === val)
-  //   setCurUrl(matchedFile.url)
-  //   setCurVal(matchedFile.value)
-  // }
-
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    // {
+    //   title: "Url",
+    //   dataIndex: "key",
+    //   key: "Url",
+    // },
+    {
+      title: "Aliases",
+      dataIndex: "aliases",
+      key: "aliases",
+      width: 400,
+    },
+  ]
   return (
     <>
       <Modal
@@ -111,15 +99,21 @@ export const DetailModal = (props) => {
         open={isDetailOpen}
         onOk={() => getOpen(false)}
         onCancel={() => getOpen(false)}
-        width={1000}
+        width={1200}
+        footer={null}
       >
         <Flex vertical="column">
           <Descriptions title="Model Info" items={descs} />
-          <Flex
-            style={{ marginTop: "20px", width: "100%", height: "500px" }}
-            align="center"
-            vertical="column"
-          >
+          <Flex align="center" vertical="column">
+            {fileTree.length > 0 && (
+              <Table
+                style={{ width: "100%", padding: "20px 0" }}
+                columns={columns}
+                // dataSource={modelTree}
+                dataSource={fileTree}
+                pagination={false}
+              />
+            )}
             {/* <Segmented
               value={curVal}
               options={options}
@@ -139,7 +133,7 @@ export const DetailModal = (props) => {
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )} */}
-            {curUrl ? (
+            {/* {curUrl ? (
               <Canvas>
                 <Stage center>
                   <Gltf src={curUrl} />
@@ -148,7 +142,7 @@ export const DetailModal = (props) => {
               </Canvas>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
+            )} */}
           </Flex>
         </Flex>
       </Modal>
