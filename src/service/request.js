@@ -11,6 +11,9 @@ const request = {
   put(url, data = {}, config = {}) {
     return service.put(url, data, { ...config })
   },
+  patch(url, data = {}, config = {}) {
+    return service.patch(url, data, { ...config })
+  },
   delete(url, params = {}, config = {}) {
     return service.delete(url, { params, ...config })
   },
